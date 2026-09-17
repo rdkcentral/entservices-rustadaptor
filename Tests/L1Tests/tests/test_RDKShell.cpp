@@ -25,6 +25,8 @@
 #include "rdkshellmock.h"
 #include "ServiceMock.h"
 #include "ThunderPortability.h"
+#include <fstream>
+#include <unistd.h>
 
 using namespace WPEFramework;
 
@@ -249,6 +251,56 @@ TEST_F(RDKShellTest, launchApplication)
         EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
                                                                                              "\"uri\": \"/usr/bin/westeros_test\","
                                                                                              "\"mimeType\": \"application/native\"}"), response));
+}
+
+TEST_F(RDKShellTest, launchApplication_RejectsSensitivePath)
+{
+        std::ofstream file("/etc/test_native_app");
+        
+        if (file.is_open()) {
+            file << "test app";
+            file.close();
+            
+            EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
+                                                                                                 "\"uri\": \"/etc/test_native_app\","
+                                                                                                 "\"mimeType\": \"application/native\"}"), response));
+            
+            unlink("/etc/test_native_app");
+        }
+}
+
+TEST_F(RDKShellTest, launchApplication_RejectsPathTraversal)
+{
+        std::ofstream file("/tmp/test_native_app");
+        
+        if (file.is_open()) {
+            file << "test app";
+            file.close();
+            
+            EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
+                                                                                                 "\"uri\": \"/tmp/../etc/test_native_app\","
+                                                                                                 "\"mimeType\": \"application/native\"}"), response));
+            
+            unlink("/tmp/test_native_app");
+        }
+}
+
+TEST_F(RDKShellTest, launchApplication_RejectsSymlink)
+{
+        std::ofstream file("/tmp/test_native_app");
+        symlink("/etc/passwd", "/tmp/symlink_app");
+        
+        if (file.is_open()) {
+            file << "test app";
+            file.close();
+            
+            EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
+                                                                                                 "\"uri\": \"/tmp/symlink_app\","
+                                                                                                 "\"mimeType\": \"application/native\"}"), response));
+            
+            unlink("/tmp/test_native_app");
+            unlink("/tmp/symlink_app");
+        }
 }
 
 TEST_F(RDKShellTest, suspendApplication)

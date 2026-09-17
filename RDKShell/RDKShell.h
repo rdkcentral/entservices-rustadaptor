@@ -281,6 +281,8 @@ namespace WPEFramework {
             RDKShell(const RDKShell&) = delete;
             RDKShell& operator=(const RDKShell&) = delete;
 
+            static bool isValidNativeApplicationUri(const std::string& uri);
+
             bool moveToFront(const string& client);
             bool moveToBack(const string& client);
             bool moveBehind(const string& client, const string& target);

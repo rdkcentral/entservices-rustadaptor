@@ -28,6 +28,9 @@
 #include <set>
 #include <sstream>
 #include <condition_variable>
+#include <limits.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <rdkshell/compositorcontroller.h>
 #include <rdkshell/application.h>
@@ -306,6 +309,53 @@ static bool waitForHibernateUnblocked(int timeoutMs)
 
 namespace WPEFramework {
     namespace Plugin {
+
+        bool isValidNativeApplicationUri(const std::string& uri)
+        {
+            // Canonicalize the path to prevent traversal
+            char resolved[PATH_MAX];
+            if (realpath(uri.c_str(), resolved) == nullptr)
+            {
+                return false;
+            }
+            std::string canonicalPath(resolved);
+
+            // Restrict to safe application directories
+            // Allow: /opt/, /usr/bin/, /usr/local/bin/, /home/, and current directory
+            // Reject: /etc/, /var/, /boot/, /dev/, /sys/, /proc/, /root/
+            
+            const char* safePrefixes[] = {
+                "/opt/",
+                "/usr/bin/",
+                "/usr/local/bin/",
+                "/home/",
+                "."
+            };
+            
+            bool isSafe = false;
+            for (const char* prefix : safePrefixes)
+            {
+                if (canonicalPath.find(prefix) == 0)
+                {
+                    isSafe = true;
+                    break;
+                }
+            }
+            
+            if (!isSafe)
+            {
+                return false;
+            }
+
+            // Reject symlinks that point outside safe directories
+            struct stat st;
+            if (lstat(uri.c_str(), &st) == 0 && S_ISLNK(st.st_mode))
+            {
+                return false;
+            }
+
+            return true;
+        }
 
         void RDKShell::TaskQueue::push(RDKShell::TaskQueue::Task task)
         {
@@ -4923,6 +4973,13 @@ namespace WPEFramework {
                     if (parameters.HasLabel("focus"))
                     {
                         focus = parameters["focus"].Boolean();
+                    }
+
+                    // Validate native application URI to prevent arbitrary execution
+                    if (!isValidNativeApplicationUri(uri))
+                    {
+                        response["message"] = "Invalid native application URI";
+                        returnResponse(false);
                     }
 
                     gRdkShellMutex.lock();
