@@ -31,7 +31,6 @@
 #include <limits.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <rdkshell/compositorcontroller.h>
 #include <rdkshell/application.h>
 #include <rdkshell/logger.h>
@@ -310,50 +309,55 @@ static bool waitForHibernateUnblocked(int timeoutMs)
 namespace WPEFramework {
     namespace Plugin {
 
-        bool isValidNativeApplicationUri(const std::string& uri)
+        bool RDKShell::canonicalizeNativeApplicationUri(const std::string& uri, std::string& canonicalUri)
         {
-            // Canonicalize the path to prevent traversal
+            canonicalUri.clear();
+            if (uri.empty() || uri.front() != '/')
+            {
+                return false;
+            }
+
+            // Reject links even when their target is in an allowed directory. This also
+            // prevents a link from being retargeted between validation and launch.
+            struct stat linkStatus;
+            if (lstat(uri.c_str(), &linkStatus) != 0 || S_ISLNK(linkStatus.st_mode))
+            {
+                return false;
+            }
+
             char resolved[PATH_MAX];
             if (realpath(uri.c_str(), resolved) == nullptr)
             {
                 return false;
             }
-            std::string canonicalPath(resolved);
+            const std::string canonicalPath(resolved);
 
-            // Restrict to safe application directories
-            // Allow: /opt/, /usr/bin/, /usr/local/bin/, /home/, and current directory
-            // Reject: /etc/, /var/, /boot/, /dev/, /sys/, /proc/, /root/
-            
-            const char* safePrefixes[] = {
+            static const char* safePrefixes[] = {
                 "/opt/",
                 "/usr/bin/",
-                "/usr/local/bin/",
-                "/home/",
-                "."
+                "/usr/local/bin/"
             };
-            
+
             bool isSafe = false;
             for (const char* prefix : safePrefixes)
             {
-                if (canonicalPath.find(prefix) == 0)
+                if (canonicalPath.compare(0, std::char_traits<char>::length(prefix), prefix) == 0)
                 {
                     isSafe = true;
                     break;
                 }
             }
-            
-            if (!isSafe)
+
+            struct stat status;
+            if (!isSafe
+                || stat(canonicalPath.c_str(), &status) != 0
+                || !S_ISREG(status.st_mode)
+                || access(canonicalPath.c_str(), X_OK) != 0)
             {
                 return false;
             }
 
-            // Reject symlinks that point outside safe directories
-            struct stat st;
-            if (lstat(uri.c_str(), &st) == 0 && S_ISLNK(st.st_mode))
-            {
-                return false;
-            }
-
+            canonicalUri = canonicalPath;
             return true;
         }
 
@@ -4975,15 +4979,16 @@ namespace WPEFramework {
                         focus = parameters["focus"].Boolean();
                     }
 
-                    // Validate native application URI to prevent arbitrary execution
-                    if (!isValidNativeApplicationUri(uri))
+                    // Validate and canonicalize the URI before passing it to the launcher.
+                    std::string canonicalUri;
+                    if (!canonicalizeNativeApplicationUri(uri, canonicalUri))
                     {
                         response["message"] = "Invalid native application URI";
                         returnResponse(false);
                     }
 
                     gRdkShellMutex.lock();
-                    result = CompositorController::launchApplication(client, uri, mimeType, topmost, focus);
+                    result = CompositorController::launchApplication(client, canonicalUri, mimeType, topmost, focus);
 		    RdkShell::CompositorController::addListener(client, mEventListener);
                     gRdkShellMutex.unlock();
 
