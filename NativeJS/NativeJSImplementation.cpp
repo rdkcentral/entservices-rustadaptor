@@ -116,6 +116,16 @@ namespace WPEFramework
 	Core::hresult NativeJSImplementation::RunJavaScript(uint32_t id, const std::string code)
 	{
 		LOGINFO("runJavaScript invoked");
+		
+		// SECURITY: Arbitrary JavaScript execution in privileged renderer (RDKEMW-24512)
+		// This API allows untrusted callers to execute arbitrary JavaScript code
+		// in a privileged renderer context, which is a severe security risk.
+		// Proper fix requires:
+		// 1. Extract caller identity from Thunder security context
+		// 2. Implement strict code validation/allowlist (e.g., only specific whitelisted APIs)
+		// 3. Or disable this API entirely and use safer alternatives
+		// For now, this remains a critical vulnerability that requires architectural changes.
+		
 		if(mNativeJSRenderer)
 		{
 			std::string Code(code);
