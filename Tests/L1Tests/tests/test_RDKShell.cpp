@@ -119,7 +119,7 @@ TEST_F(RDKShellTest, RegisteredMethods){
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("ignoreKeyInputs")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("injectKey")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("kill")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("launch")));
+    EXPECT_NE(Core::ERROR_NONE, handler.Exists(_T("launch")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("launchApplication")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("launchResidentApp")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("moveBehind")));
@@ -163,6 +163,12 @@ TEST_F(RDKShellTest, RegisteredMethods){
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("launchFactoryAppShortcut")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("enableInputEvents")));
     }
+
+TEST_F(RDKShellTest, launchIsNotExposedWithoutCallerAuthorization)
+{
+    EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launch"), _T("{\"callsign\":\"app\",\"type\":\"HtmlApp\",\"uri\":\"https://example.invalid\"}"), response));
+}
+
 TEST_F(RDKShellTest, enableInputEvents)
 {
    ON_CALL(*p_compositorImplMock, enableInputEvents(::testing::_, ::testing::_))
