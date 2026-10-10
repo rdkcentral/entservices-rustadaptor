@@ -25,6 +25,7 @@
 #include "rdkshellmock.h"
 #include "ServiceMock.h"
 #include "ThunderPortability.h"
+#include <unistd.h>
 
 using namespace WPEFramework;
 
@@ -240,15 +241,42 @@ TEST_F(RDKShellTest, launchApplication)
                 .WillByDefault(::testing::Invoke(
                 [](const std::string& client, const std::string& uri, const std::string& mimeType, bool topmost, bool focus){
                   EXPECT_EQ(client, string("testApp"));
-                  EXPECT_EQ(uri, string("/usr/bin/westeros_test"));
+                  EXPECT_EQ(uri, string("/usr/bin/env"));
                   EXPECT_EQ(mimeType, string("application/native"));
                   EXPECT_EQ(topmost, false);
                   EXPECT_EQ(focus, false);
                   return true;
                 }));
         EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
-                                                                                             "\"uri\": \"/usr/bin/westeros_test\","
+                                                                                             "\"uri\": \"/usr/bin/env\","
                                                                                              "\"mimeType\": \"application/native\"}"), response));
+}
+
+TEST_F(RDKShellTest, launchApplication_RejectsSensitivePath)
+{
+        EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
+                                                                                             "\"uri\": \"/etc/passwd\","
+                                                                                             "\"mimeType\": \"application/native\"}"), response));
+}
+
+TEST_F(RDKShellTest, launchApplication_RejectsPathTraversal)
+{
+        EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
+                                                                                             "\"uri\": \"/usr/bin/../../etc/passwd\","
+                                                                                             "\"mimeType\": \"application/native\"}"), response));
+}
+
+TEST_F(RDKShellTest, launchApplication_RejectsSymlink)
+{
+        const char* symlinkPath = "/tmp/rdkshell_native_app_symlink";
+        unlink(symlinkPath);
+        ASSERT_EQ(0, symlink("/usr/bin/env", symlinkPath));
+
+        EXPECT_NE(Core::ERROR_NONE, handler.Invoke(connection, _T("launchApplication"), _T("{\"client\": \"testApp\","
+                                                                                             "\"uri\": \"/tmp/rdkshell_native_app_symlink\","
+                                                                                             "\"mimeType\": \"application/native\"}"), response));
+
+        EXPECT_EQ(0, unlink(symlinkPath));
 }
 
 TEST_F(RDKShellTest, suspendApplication)

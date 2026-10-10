@@ -28,7 +28,9 @@
 #include <set>
 #include <sstream>
 #include <condition_variable>
+#include <limits.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <rdkshell/compositorcontroller.h>
 #include <rdkshell/application.h>
 #include <rdkshell/logger.h>
@@ -306,6 +308,58 @@ static bool waitForHibernateUnblocked(int timeoutMs)
 
 namespace WPEFramework {
     namespace Plugin {
+
+        bool RDKShell::canonicalizeNativeApplicationUri(const std::string& uri, std::string& canonicalUri)
+        {
+            canonicalUri.clear();
+            if (uri.empty() || uri.front() != '/')
+            {
+                return false;
+            }
+
+            // Reject links even when their target is in an allowed directory. This also
+            // prevents a link from being retargeted between validation and launch.
+            struct stat linkStatus;
+            if (lstat(uri.c_str(), &linkStatus) != 0 || S_ISLNK(linkStatus.st_mode))
+            {
+                return false;
+            }
+
+            char resolved[PATH_MAX];
+            if (realpath(uri.c_str(), resolved) == nullptr)
+            {
+                return false;
+            }
+            const std::string canonicalPath(resolved);
+
+            static const char* safePrefixes[] = {
+                "/opt/",
+                "/usr/bin/",
+                "/usr/local/bin/"
+            };
+
+            bool isSafe = false;
+            for (const char* prefix : safePrefixes)
+            {
+                if (canonicalPath.compare(0, std::char_traits<char>::length(prefix), prefix) == 0)
+                {
+                    isSafe = true;
+                    break;
+                }
+            }
+
+            struct stat status;
+            if (!isSafe
+                || stat(canonicalPath.c_str(), &status) != 0
+                || !S_ISREG(status.st_mode)
+                || access(canonicalPath.c_str(), X_OK) != 0)
+            {
+                return false;
+            }
+
+            canonicalUri = canonicalPath;
+            return true;
+        }
 
         void RDKShell::TaskQueue::push(RDKShell::TaskQueue::Task task)
         {
@@ -4925,8 +4979,16 @@ namespace WPEFramework {
                         focus = parameters["focus"].Boolean();
                     }
 
+                    // Validate and canonicalize the URI before passing it to the launcher.
+                    std::string canonicalUri;
+                    if (!canonicalizeNativeApplicationUri(uri, canonicalUri))
+                    {
+                        response["message"] = "Invalid native application URI";
+                        returnResponse(false);
+                    }
+
                     gRdkShellMutex.lock();
-                    result = CompositorController::launchApplication(client, uri, mimeType, topmost, focus);
+                    result = CompositorController::launchApplication(client, canonicalUri, mimeType, topmost, focus);
 		    RdkShell::CompositorController::addListener(client, mEventListener);
                     gRdkShellMutex.unlock();
 
