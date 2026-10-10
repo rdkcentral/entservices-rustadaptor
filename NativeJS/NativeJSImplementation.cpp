@@ -113,19 +113,10 @@ namespace WPEFramework
 		return (Core::ERROR_NONE);
 	}
 
-	Core::hresult NativeJSImplementation::RunJavaScript(uint32_t id, const std::string code)
+	Core::hresult NativeJSImplementation::RunJavaScript(uint32_t, const std::string)
 	{
 		LOGINFO("runJavaScript invoked");
-		if(mNativeJSRenderer)
-		{
-			std::string Code(code);
-			mNativeJSRenderer->runJavaScript(id, Code);
-		}
-		else
-		{
-			LOGINFO("runJavaScript couldn't execute");
-		}
-		return (Core::ERROR_NONE);
+		return (Core::ERROR_UNAVAILABLE);
 	}
 
 	Core::hresult NativeJSImplementation::GetApplications()

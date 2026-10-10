@@ -121,6 +121,11 @@ set (APPMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-infra/AppManager ${CMAKE_
 set (APPMANAGER_LIBS ${NAMESPACE}AppManager ${NAMESPACE}AppManagerImplementation)
 add_plugin_test_ex(PLUGIN_APPMANAGER tests/test_AppManager.cpp "${APPMANAGER_INC}" "${APPMANAGER_LIBS}")
 
+# PLUGIN_NATIVEJS
+set (NATIVEJS_INC ${CMAKE_SOURCE_DIR}/../entservices-infra/NativeJS ${CMAKE_SOURCE_DIR}/../entservices-infra/helpers)
+set (NATIVEJS_LIBS ${NAMESPACE}NativeJS)
+add_plugin_test_ex(PLUGIN_NATIVEJS tests/test_NativeJS.cpp "${NATIVEJS_INC}" "${NATIVEJS_LIBS}")
+
 # PLUGIN_OCICONTAINER
 set (OCICONTAINER_INC ${CMAKE_SOURCE_DIR}/../entservices-infra/OCIContainer ${CMAKE_SOURCE_DIR}/../entservices-infra/OCIContainer/stubs)
 set (OCICONTAINER_LIBS ${NAMESPACE}OCIContainer)
