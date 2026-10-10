@@ -1492,7 +1492,6 @@ namespace WPEFramework {
             Register(RDKSHELL_METHOD_SET_INACTIVITY_INTERVAL, &RDKShell::setInactivityIntervalWrapper, this);
             Register(RDKSHELL_METHOD_RESET_INACTIVITY_TIME, &RDKShell::resetInactivityTimeWrapper, this);
             Register(RDKSHELL_METHOD_SCALE_TO_FIT, &RDKShell::scaleToFitWrapper, this);
-            Register(RDKSHELL_METHOD_LAUNCH, &RDKShell::launchWrapper, this);
             Register(RDKSHELL_METHOD_LAUNCH_APP, &RDKShell::launchApplicationWrapper, this);
             Register(RDKSHELL_METHOD_SUSPEND, &RDKShell::suspendWrapper, this);
             Register(RDKSHELL_METHOD_SUSPEND_APP, &RDKShell::suspendApplicationWrapper, this);
