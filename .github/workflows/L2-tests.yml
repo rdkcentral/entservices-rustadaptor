@@ -148,6 +148,11 @@ jobs:
           &&
           cmake --install build/ThunderTools
 
+      - name: Apply patches Thunder
+        run: |
+          cd $GITHUB_WORKSPACE/Thunder
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Increase_Timout_For_L2Tests_Plugin_R4_4-RDK.patch
+          cd -
       - name: Build Thunder
         run: >
           cmake
@@ -303,7 +308,6 @@ jobs:
           -DEXCEPTIONS_ENABLE=ON
           -fprofile-arcs
           -ftest-coverage
-          -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
@@ -380,7 +384,6 @@ jobs:
           -DEXCEPTIONS_ENABLE=ON
           -fprofile-arcs
           -ftest-coverage
-          -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
@@ -477,7 +480,6 @@ jobs:
           -DEXCEPTIONS_ENABLE=ON
           -fprofile-arcs
           -ftest-coverage
-          -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
