@@ -26,7 +26,7 @@ cd ..
 ###########################################
 # Clone the required repositories
 
-THUNDER_TOOLS_COMMIT_SHA="d5dd83c7c19c49c7f25c558c126500bd2d64f7a4"
+THUNDER_TOOLS_COMMIT_SHA="4facb75ff223a7ed1e28d8165adf5fc6fa004cfc"
 THUNDER_COMMIT_SHA="2c0fcc5529e7da734be558ca6efa05d934dcce31"
 
 git clone --branch R4_4-RDK https://github.com/rdkcentral/ThunderTools.git
